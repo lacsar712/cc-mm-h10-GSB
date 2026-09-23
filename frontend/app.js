@@ -44,10 +44,6 @@ function showApp() {
 async function load() {
   const data = await api("/api/readings");
   const list = Array.isArray(data) ? data : (data.items || []);
-  // 新行藏匿旁路：展示待同步提示
-  if (data && data.pending_sync) {
-    live.textContent = data.pending_msg || "待同步";
-  }
   paint(list);
 }
 
