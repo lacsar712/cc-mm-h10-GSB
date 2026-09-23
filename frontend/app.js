@@ -12,7 +12,7 @@ function paint(list) {
   rows.innerHTML = list
     .map(
       (r) =>
-        `<tr><td>${r.site}</td><td>${r.ch4_pct}</td><td class="${r.level === "报警" ? "alarm" : "ok"}">${r.level}</td><td>${r.note}</td></tr>`,
+        `<tr><td>${r.id}</td><td>${r.site}</td><td>${r.ch4_pct}</td><td class="${r.level === "报警" ? "alarm" : "ok"}">${r.level}</td><td>${r.note}</td></tr>`,
     )
     .join("");
 }
@@ -44,10 +44,6 @@ function showApp() {
 async function load() {
   const data = await api("/api/readings");
   const list = Array.isArray(data) ? data : (data.items || []);
-  // 新行藏匿旁路：展示待同步提示
-  if (data && data.pending_sync) {
-    live.textContent = data.pending_msg || "待同步";
-  }
   paint(list);
 }
 
@@ -79,13 +75,15 @@ document.querySelector("#go").onclick = async () => {
 form.onsubmit = async (e) => {
   e.preventDefault();
   try {
-    await api("/api/readings", {
+    const row = await api("/api/readings", {
       method: "POST",
       body: JSON.stringify({
         site: document.querySelector("#site").value,
         ch4_pct: Number(document.querySelector("#ch4").value),
       }),
     });
+    live.textContent = `已上报：#${row.id} ${row.site} ${row.level}`;
+    await load();
   } catch (err) {
     live.textContent = err.message;
   }

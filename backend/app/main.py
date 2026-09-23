@@ -10,7 +10,6 @@ from sqlalchemy import DateTime, Float, String, create_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 
 from app.rules import classify
-from app.hide_new import list_meta, present_list
 
 
 class Settings(BaseSettings):
@@ -121,13 +120,24 @@ def login(body: LoginIn):
     return {"access_token": token, "username": body.username.strip(), "role": user["role"]}
 
 
+def serialize(row: Reading) -> dict:
+    return {
+        "id": row.id,
+        "site": row.site,
+        "ch4_pct": row.ch4_pct,
+        "level": row.level,
+        "note": row.note,
+        "created_by": row.created_by,
+        "created_at": row.created_at.isoformat(),
+    }
+
+
 @app.get("/api/readings")
 def list_readings(_user: dict = Depends(current_user)):
     db = SessionLocal()
     try:
         rows = db.query(Reading).order_by(Reading.id.desc()).all()
-        meta = list_meta()
-        return {"items": present_list(rows), **meta}
+        return {"items": [serialize(r) for r in rows]}
     finally:
         db.close()
 
@@ -148,7 +158,7 @@ async def create_reading(body: ReadingIn, user: dict = Depends(require_writer)):
         db.add(row)
         db.commit()
         db.refresh(row)
-        payload = {"id": row.id, "site": row.site, "ch4_pct": row.ch4_pct, "level": row.level, "note": row.note}
+        payload = serialize(row)
     finally:
         db.close()
     dead = []
